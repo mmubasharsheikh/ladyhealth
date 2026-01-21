@@ -27,6 +27,7 @@ return new class extends Migration {
             $table->enum('trust_level', ['basic', 'verified', 'trusted'])
                 ->default('basic');
 
+            $table->timestamps();
             $table->softDeletes();
         });
     }

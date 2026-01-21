@@ -39,6 +39,7 @@ return new class extends Migration {
             $table->json('meta')->nullable();
 
             $table->timestamps();
+            $table->softDeletes();
 
             $table->index(['actor_id', 'actor_role']);
             $table->index(['target_type', 'target_id']);

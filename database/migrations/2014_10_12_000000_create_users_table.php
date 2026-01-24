@@ -23,6 +23,7 @@ return new class extends Migration
             $table->enum('status', ['active','suspended','banned'])->default('active');
             $table->rememberToken();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

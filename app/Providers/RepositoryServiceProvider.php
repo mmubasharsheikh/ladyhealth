@@ -5,6 +5,8 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use App\Repositories\Contracts\AppointmentRepositoryInterface;
 use App\Repositories\Eloquent\AppointmentRepository;
+use DoctorAvailabilityRepository;
+use DoctorAvailabilityRepositoryInterface;
 
 class RepositoryServiceProvider extends ServiceProvider
 {
@@ -13,6 +15,11 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(
             AppointmentRepositoryInterface::class,
             AppointmentRepository::class
+        );
+
+        $this->app->bind(
+            DoctorAvailabilityRepositoryInterface::class,
+            DoctorAvailabilityRepository::class
         );
     }
 }

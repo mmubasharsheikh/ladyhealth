@@ -27,6 +27,11 @@ return new class extends Migration {
             $table->enum('status', ['scheduled', 'cancelled', 'completed'])
                 ->default('scheduled');
 
+            $table->decimal('fee', 10, 2)->nullable();
+            $table->string('appointment_billing_type')->nullable();
+            $table->decimal('appointment_billing_value', 10, 2)->nullable();
+            $table->decimal('clinic_commission_amount', 10, 2)->nullable();
+
             $table->timestamps();
             $table->softDeletes();
         });

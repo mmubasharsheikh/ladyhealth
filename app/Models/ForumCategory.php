@@ -4,27 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Clinic extends Model
+class ForumCategory extends Model
 {
     protected $fillable = [
         'name',
-        'type',     // private | clinic | hospital
-        'city',
+        'slug',
         'status',
     ];
 
-    public function doctors()
+    public function posts()
     {
-        return $this->hasMany(ClinicDoctor::class);
-    }
-
-    public function staff()
-    {
-        return $this->hasMany(ClinicStaff::class);
-    }
-
-    public function appointments()
-    {
-        return $this->hasMany(Appointment::class);
+        return $this->hasMany(ForumPost::class, 'category_id');
     }
 }

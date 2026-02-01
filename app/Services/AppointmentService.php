@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Models\Appointment;
 use App\Models\ClinicDoctor;
+use App\Models\ClinicDoctorContract;
 use App\Models\DoctorAssistant;
+use App\Models\User;
 use App\Repositories\Contracts\AppointmentRepositoryInterface;
 use Illuminate\Support\Facades\DB;
 use DomainException;
@@ -22,7 +24,7 @@ class AppointmentService
     /**
      * Create appointment
      */
-    public function create(array $data, $actor): Appointment
+    public function create(array $data, User $actor): Appointment
     {
         return DB::transaction(function () use ($data, $actor) {
 
@@ -49,14 +51,32 @@ class AppointmentService
                 throw new DomainException('This slot is already booked.');
             }
 
+            $contract = $this->contractRepo->getActiveContract(
+                $data['clinic_id'],
+                $data['doctor_id'],
+                $data['appointment_time']
+            );
+
+            [$type, $value, $amount] = $this->resolveAppointmentBilling(
+                $contract,
+                $data['fee']
+            );
+
             return $this->appointments->create([
-                'clinic_id' => $data['clinic_id'],
-                'doctor_id' => $data['doctor_id'],
-                'patient_id' => $data['patient_id'] ?? null,
-                'appointment_time' => $data['appointment_time'],
-                'managed_by' => $actor->id,
-                'managed_by_role' => $this->resolveRole($actor),
-                'status' => 'scheduled',
+                'clinic_id'                     => $data['clinic_id'],
+                'doctor_id'                     => $data['doctor_id'],
+                'patient_id'                    => $data['patient_id'] ?? null,
+                'appointment_time'              => $data['appointment_time'],
+
+                'fee'                           => $data['fee'],   // total patient fee
+
+                'appointment_billing_type'      => $type,
+                'appointment_billing_value'     => $value,
+                'clinic_commission_amount'      => $amount,
+
+                'managed_by'                    => $actor->id,
+                'managed_by_role'               => $this->resolveRole($actor),
+                'status'                        => 'scheduled',
             ]);
         });
     }
@@ -67,7 +87,7 @@ class AppointmentService
     public function reschedule(
         Appointment $appointment,
         string $newTime,
-        $actor
+        User $actor
     ): bool {
         $this->authorize(
             $actor,
@@ -112,7 +132,7 @@ class AppointmentService
      * -----------------------
      */
 
-    private function authorize($actor, int $doctorId, int $clinicId): void
+    private function authorize(User $actor, int $doctorId, int $clinicId): void
     {
         // Doctor managing own appointments
         if ($actor->hasRole('doctor') && $actor->id === $doctorId) {
@@ -206,4 +226,35 @@ class AppointmentService
         );
     }
 
+    private function resolveAppointmentBilling(
+    ClinicDoctorContract $contract,
+    float $fee
+    ): array {
+        if ($contract->appointment_billing_type === 'none') {
+            return ['none', null, 0.00];
+        }
+
+        if ($contract->appointment_billing_type === 'percentage') {
+            $amount = round(
+                ($fee * $contract->appointment_billing_value) / 100,
+                2
+            );
+
+            return [
+                'percentage',
+                $contract->appointment_billing_value,
+                $amount,
+            ];
+        }
+
+        if ($contract->appointment_billing_type === 'fixed_per_visit') {
+            return [
+                'fixed_per_visit',
+                $contract->appointment_billing_value,
+                $contract->appointment_billing_value,
+            ];
+        }
+
+        return ['none', null, 0.00];
+    }
 }
